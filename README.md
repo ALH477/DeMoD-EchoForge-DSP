@@ -179,8 +179,8 @@ This design combines high-speed digital (DDR3, McBSP0) with sensitive analog aud
 
 1. **Clone the Repository**:
    ```bash:disable-run
-   git clone <repository_url>
-   cd <repository_directory>
+   git clone https://github.com/ALH477/DeMoD-EchoForge-DSP.git
+   cd DeMoD-EchoForge-DSP
    ```
 
 2. **Install Dependencies**:
