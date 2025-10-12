@@ -1,132 +1,188 @@
-# USB-C DSP Audio Interface
+# DSP Audio Interface with DDR3 Memory
 
-Being opinionated about your tools, the entities that exist solely to provide a means to an end. Is not a lost cause for many reasons, they are the conduit of your creativity. There are many artisans in history and modern times who make their own tools. The best example of this is the Blacksmith.
-
-They build each tool they need for their unique desires. Specifically forged for their art, which may even be the tool itself. My point is that each variable in your cocktail of creation will define the result of a fine imprint that creates its character and soul. So continue to be an opinionated ass, its your obligation as a creator. Make your own tools if needed, but there is no shame in using what others have built.
-This can actually lead to improvements on these legacy FOSS applications. The beauty of FOSS or OSS is that you can modify it to your needs. My goals with DeMoD have been this from the beginning, giving the creator the tools to build what they need. A lot of my work appears tangential and scatterbrained, if you consider everything I have done in detail. It all connects to itself, constantly referring to itself for a self fulfilling ecosystem.
-
-My love for Open Source has inspired my business model, I plan to create many Open Sources solutions for many use cases.
-Every artist deserves to make their tool a work of art. People like Les Paul, Terry Davis, and Van Halen understood this as well. Those are the first few that come to mind but there are many more examples. There is a reason why every good luthier takes great pride in what they do.
-Be opinionated, it defines who you are and how you create. If you cannot find your needs, then make them, obsess over the necessary tools for the job. This is how invention comes to fruition.
+**Copyright © 2025 DeMoD LLC and Asher LeRoy**  
+Licensed under the CERN Open Hardware Licence Strongly Reciprocal (CERN-OHL-S) v2.  
+See the `LICENSE` file in the repository root for full terms.
 
 ## Overview
 
-This repository contains the open-source hardware design for a compact USB-C powered digital signal processor (DSP) audio interface. The device is centered on the Texas Instruments TMS320C6657 DSP, supported by 8Gb DDR3L RAM for high-bandwidth data processing, the TI TAC5212 stereo audio codec for high-fidelity conversion, and a USB-C port for data transfer and power. It offers stereo audio input and output via 3.5mm TRS jacks, enabling real-time audio applications with low latency and high performance.
+This project provides a production-ready schematic for a high-performance DSP audio interface utilizing the Texas Instruments TMS320C6657 digital signal processor (DSP), Micron MT41K512M16 DDR3L memory, and Texas Instruments TAC5212 audio codec. The design supports stereo 3.5mm TRS input/output for professional audio applications, such as real-time audio processing, effects, or recording interfaces. The schematic is generated using SKiDL, a Python-based hardware description library, and outputs a KiCad-compatible schematic file (`production_dsp_schematic.kicad_sch`).
 
-The design emphasizes signal integrity and noise reduction through separated digital (DGND) and analog (AGND) grounds with star grounding, comprehensive decoupling, and a 4-layer PCB layout. Production features include ESD protection on USB and audio ports, a resettable fuse on VBUS, a power LED, a JTAG debugging header, and ZQ calibration resistors for DDR3 reliability.
+**Key Features:**
+- **DSP**: TMS320C6657 with dual C66x cores, supporting high-performance signal processing.
+- **Memory**: 512Mb x16 DDR3L (MT41K512M16) for fast data buffering and processing.
+- **Audio Codec**: TAC5212 with stereo ADC/DAC, supporting high-fidelity audio up to 192kHz/24-bit.
+- **I/O**: Stereo 3.5mm TRS jacks for line-level input and output.
+- **Configuration**: I2C interface for codec control.
+- **Power Management**: Multiple voltage rails (1.0V, 1.5V, 1.8V, 3.3V) with hardware-enforced sequencing via PMIC.
+- **ESD Protection**: TVS diodes on audio I/O for robustness.
+- **Debugging**: JTAG interface for DSP programming and debugging.
+- **Signal Integrity Enhancements**: DDR3 impedance tuning (PTV15), series terminations, ferrite beads for EMI suppression, and localized decoupling.
 
-This project is licensed under the CERN Open Hardware Licence Strongly Reciprocal (CERN-OHL-S) v2. Copyright © 2025 DeMoD LLC and Asher LeRoy. All rights reserved under the terms of the license. Derivatives must remain open and credit the original copyright holders.
+**Important Note: Work in Progress**  
+This project is actively under development and considered a work in progress (WIP). While the schematic addresses core functionality and key signal integrity requirements, ongoing iterations include full PCB layout, firmware development, SI simulations (e.g., HyperLynx for DDR3 eye diagrams), and hardware validation. Contributions, feedback, and testing are encouraged to refine the design. Current version incorporates critical fixes (e.g., power sequencing, PTV15 calibration) but may require adjustments based on prototype results. Refer to the [CHANGELOG.md](CHANGELOG.md) (to be added) for version history.
 
-## Features
+**Note**: The TMS320C6657 does not include a built-in USB controller. For USB connectivity, an external controller (e.g., TUSB2046) must be added, which is outside the scope of this schematic.
 
-- **DSP Processing**: Dual-core C66x DSP (TMS320C6657) up to 1.25 GHz for advanced real-time algorithms such as filtering, effects, or AI-driven audio enhancement.
-- **Memory**: 1GB DDR3L SDRAM with full x16 interface for large data buffers in applications like reverb or spectral analysis.
-- **Audio Codec**: TAC5212 with high dynamic range ADC/DAC supporting up to 192 kHz/32-bit stereo in I2S/TDM formats.
-- **USB Interface**: USB-C receptacle with USB 2.0 OTG support for audio streaming and control, including CC pull-downs for device mode.
-- **Audio I/O**: Dual 3.5mm TRS jacks for stereo input (e.g., instruments/microphones) and output (e.g., headphones/speakers), with low-pass filtering on one channel.
-- **Power Management**: Dual low-noise LDO regulators providing 3.3V and 1.35V rails, with a voltage reference divider for DDR3.
-- **Debugging and Indicators**: 6-pin JTAG header for firmware development and a power LED for status monitoring.
-- **Board Specifications**: 60x40mm 4-layer PCB with EMI-optimized layout, via stitching, and assembly-friendly silkscreen.
-- **Open-Source Assets**: Python scripts for schematic (SKiDL) and PCB (pcbnew) generation, KiCad files, Gerbers, BOM, and documentation.
+## Repository Contents
 
-## Key Components
+- `schematic.py`: SKiDL script generating the KiCad schematic, including all improvements for signal integrity and power sequencing.
+- `LICENSE`: CERN-OHL-S v2 license file.
+- `production_dsp_schematic.kicad_sch` (generated): KiCad schematic file with enhanced features (e.g., PMIC integration, ferrite beads).
+- `README.md`: This file.
+- `CHANGELOG.md` (planned): Detailed change log for WIP iterations.
 
-### TMS320C6657 DSP (U1)
-- **Manufacturer**: Texas Instruments
-- **Type**: Dual-core C66x fixed and floating-point DSP
-- **Clock Speed**: Up to 1.25 GHz per core
-- **On-Chip Memory**: 32KB L1 program cache, 32KB L1 data cache, 1024KB L2 cache per core
-- **Interfaces**: DDR3 EMIF (up to 8GB addressable, 1333 MT/s), USB 2.0 OTG, McASP for audio serial port, UART (2x), JTAG for debugging
-- **Power**: Core supply 0.85–1.1V (nominal 1.0V), I/O 1.8V/3.3V
-- **Package**: 625-pin BGA (21x21mm, 0.8mm pitch)
-- **Operating Temperature**: -40°C to +100°C (commercial grade)
-- **Key Notes**: Supports floating-point operations for precise audio processing; EMIF enables full utilization of 1GB DDR3 for buffering.
+## Prerequisites
 
-### MT41K512M16 RAM (U2)
-- **Manufacturer**: Micron Technology
-- **Type**: DDR3L SDRAM
-- **Capacity**: 8Gb (512M x 16)
-- **Speed**: 933 MHz (1866 MT/s)
-- **Voltage**: 1.35V (VDD/VDDQ), compatible with 1.5V DDR3
-- **Bus Width**: x16
-- **Interfaces**: JEDEC-standard DDR3 with differential clock (CK/CK#), data strobes (LDQS/LDQS#, UDQS/UDQS#), masks (LDM/UDM), address (A0-15), bank (BA0-2), and control signals
-- **Package**: 96-ball FBGA (9x14mm, 0.8mm pitch)
-- **Operating Temperature**: -40°C to +95°C
-- **Key Notes**: Provides 1GB for DSP buffering; requires initialization (mode registers, DLL) via firmware for reliable operation at high speeds.
+To generate and use the schematic, ensure the following tools are installed:
 
-### TAC5212 Audio Codec (U3)
-- **Manufacturer**: Texas Instruments
-- **Type**: Stereo audio codec with integrated ADC/DAC
-- **Dynamic Range**: 119 dB ADC, 120 dB DAC (stereo mode)
-- **Input/Output**: 2VRMS differential input/output, supporting single-ended via grounding negatives
-- **Sample Rate**: Up to 192 kHz, 32-bit resolution
-- **Interfaces**: I2S/TDM/LJ digital audio, with BCLK (bit clock), FSYNC (frame sync), DOUT (output), DIN (input)
-- **Voltage**: Digital 1.0V (DREG), I/O 3.3V (IOVDD), analog 3.3V (AVDD)
-- **Package**: VQFN-32 (5x5mm, 0.5mm pitch)
-- **Operating Temperature**: -40°C to +125°C
-- **Key Notes**: High SNR for professional audio; configure via registers for format/gain—use DSP McASP for direct interfacing.
+- **Python**: Version 3.8 or higher.
+- **SKiDL**: Install via `pip install skidl`.
+- **kinet2pcb**: Install via `pip install kinet2pcb`.
+- **KiCad**: Version 6.0 or higher for viewing/editing the generated schematic.
+- **KiCad Libraries**: Ensure KiCad symbol and footprint libraries are installed at `/usr/share/kicad/library` or update `lib_search_paths[skidl.KICAD]` in `schematic.py` to match your setup.
 
-### TPS7A54 LDO Regulators (U4 for 3.3V, U5 for 1.35V)
-- **Manufacturer**: Texas Instruments
-- **Type**: Low-noise, high-accuracy linear dropout regulator
-- **Output Current**: Up to 4A
-- **Accuracy**: 0.5% over temperature/line/load
-- **Noise**: 4.4 µVRMS (10 Hz to 100 kHz)
-- **Dropout Voltage**: 175 mV max at 4A
-- **Input Voltage**: 1.1V to 6.5V
-- **Package**: SOT-223-4 (with tab for heat sinking)
-- **Operating Temperature**: -40°C to +125°C
-- **Key Notes**: U4 steps down VBUS to 3.3V; U5 to 1.35V for DDR3 with feedback resistors (6.81k/10k for 1.35V output)—ideal for low-noise audio/DSP applications.
+For advanced validation:
+- **SI Simulation Tools**: HyperLynx or equivalent for DDR3 signal integrity analysis.
+- **PCB Design**: KiCad PCB Editor for layout, following IPC-2221/IPC-7351 standards.
 
-## Hardware Overview
+## Hardware Specifications
 
-The board is a 60x40mm 4-layer PCB (top signal, inner GND, inner power, bottom signal/AGND) optimized for high-speed signals and low noise.
+### Components
+- **DSP**: Texas Instruments TMS320C6657 (BGA-625, 21x21mm, 0.8mm pitch).
+- **Memory**: Micron MT41K512M16 (FBGA-96, 9x14mm, 0.8mm pitch, DDR3L, 1.5V).
+- **Audio Codec**: Texas Instruments TAC5212 (VQFN-24, 4x4mm, 0.5mm pitch).
+- **Power Management IC (PMIC)**: Texas Instruments TPS659037 (QFN-64, 9x9mm, 0.5mm pitch) for sequenced LDO outputs (1.0V, 1.5V, 1.8V, 3.3V).
+- **Regulators**: TPS7A54 (VQFN-12) as secondary LDOs with enable pins for sequencing.
+- **Connectors**: Stereo 3.5mm TRS jacks (CUI SJ1-3513N) for audio I/O, 6-pin JTAG header.
+- **Passives**: Decoupling capacitors (0.1μF x50, 0.01μF x10, 10μF x3), resistors (100Ω, 240Ω, 4.7kΩ, 10kΩ, 22Ω series for I2C, 34Ω series for DDR, 45.3Ω 1% for PTV15), TVS diodes for ESD protection.
+- **EMI Filters**: Ferrite beads (600Ω @ 100MHz x4) on power and audio lines.
+- **LED**: Status indicator with 1kΩ current-limiting resistor.
 
-- **Power Path**: USB VBUS (5V) through fuse (F1) to U4 (3.3V), which supplies U5 (1.35V for DDR3). VREF_DDR (0.675V) via divider (R3/R4, C_VREF). Star grounding minimizes noise coupling.
-- **DSP-RAM Interface**: Complete DDR3 x16 bus with all signals connected; ZQ calibrated for impedance. Extensive decoupling near RAM.
-- **Audio Path**: Stereo inputs/outputs with ESD; codec to DSP via McASP for synchronized digital audio.
-- **USB**: OTG pins with protection; CC for detection.
-- **Additional**: JTAG for debug, LED for power status.
+### Power Requirements
+- **1.0V**: DSP core (CVDD, CVDD1) and SerDes termination (VDDT1-2).
+- **1.5V**: DDR3L (VDD, VDDQ) and DSP DDR I/O (DVDD15, VDDR1-4).
+- **1.8V**: DSP I/O (DVDD18) and PLLs (AVDDA1-2).
+- **3.3V**: Codec (AVDD, IOVDD) and regulator inputs.
+- **VREF_DDR**: 0.75V (1.5V/2) for DDR3 reference, generated via resistor divider.
+- **Power Sequencing**: Enforced via TPS659037 PMIC (core-before-I/O: 1.0V → 1.5V → 1.8V → 3.3V), per TMS320C6657 datasheet (Section 6.5). Includes enable signals for secondary regulators.
 
-## How It Works
+### PCB Layout Guidelines
+- **DDR3 Signal Integrity**:
+  - Match trace lengths for DDR3 signals (DQ, DQS, CLK, address/control) within 50ps skew.
+  - Use 50Ω characteristic impedance for DDR3 traces.
+  - Enable on-die termination (ODT) via DDR_ODT0 pin.
+  - Route DDR signals on inner layers with solid ground planes to minimize noise. Include thermal vias under BGA packages (U1, U2) for heat dissipation.
+- **Power Integrity**:
+  - Place decoupling capacitors (0.01μF, 0.1μF, 10μF) as close as possible to power pins (<5mm).
+  - Use separate digital (DGND) and analog (AGND) ground planes, connected via a single 0Ω resistor (R_STAR).
+- **Audio I/O**:
+  - Route audio traces (GUITAR_IN_L/R, AUDIO_OUT_L/R) away from high-speed digital signals (>10mm separation).
+  - Ensure TVS diodes (D2, D3, D4) and ferrite beads (FB3, FB4) are placed near connectors to protect against ESD and EMI.
 
-1. **Power-Up**: USB connection supplies VBUS, regulated to stable rails. LED illuminates.
-2. **USB Enumeration**: CC resistors enable device mode; DSP handles USB protocol for audio class.
-3. **Audio Input**: Signals from J2 digitized by codec, sent to DSP via McASP.
-4. **Processing**: DSP uses DDR3 for data, applies algorithms (e.g., effects).
-5. **Audio Output**: Processed data back to codec for analog output on J3.
-6. **Debug**: JTAG allows firmware loading/profiling.
+**WIP Note**: PCB layout is in progress; initial prototypes will validate these guidelines.
 
-Helpful tip: Ensure firmware initializes DDR3 timing parameters to match PCB trace lengths.
+## KiCad Routing Best Practices
 
-## What It Can Be Used For
+This section outlines best practices for routing the PCB in KiCad, tailored to this project's high-speed DDR3 signals, mixed-signal audio paths, and power distribution. These guidelines draw from KiCad documentation, IEEE standards, JEDEC JESD79-3C for DDR3, and general PCB design principles (e.g., IPC-2221 for generic design and IPC-7351 for land patterns). The focus is on maintaining signal integrity (SI), minimizing electromagnetic interference (EMI), and ensuring power integrity. Always perform Design Rule Checks (DRC) and Electrical Rule Checks (ERC) in KiCad, and validate with simulations (e.g., HyperLynx for SI).
 
-- **Music Production**: Low-latency interface for recording/processing with onboard effects.
-- **Live Audio**: Effects processor for instruments, leveraging RAM for delays.
-- **IoT**: Edge audio analysis in smart devices.
-- **Prototyping**: DSP development board with USB integration.
-- **AI Audio**: Lightweight ML for voice tasks.
+### General Routing Principles in KiCad
+- **Layer Stackup**: Use a minimum 4-layer board (signal/GND/power/signal) for noise isolation. For high-speed designs like this, prefer 6-8 layers to dedicate inner layers for DDR3 routing and ground planes. In KiCad's PCB Editor, define stackup via "Board Setup > Physical Stackup" to calculate impedance accurately.
+- **Trace Width and Spacing**: Use KiCad's Trace Width Calculator (under "Tools") to determine widths based on current, temperature rise, and impedance (e.g., 50Ω for DDR3). For power traces, aim for widths supporting 1A/mm²; for signals, minimize to reduce capacitance.
+- **Via Usage**: Prefer through-vias for signal transitions; use blind/buried vias for high-density areas. Minimize via stubs in high-speed paths to avoid reflections. In KiCad, set via sizes in "Board Setup > Design Rules > Net Classes".
+- **Ground Planes**: Flood unused areas with ground fills (use "Zone" tool in PCB Editor). Stitch planes with vias every 10-15mm to reduce ground bounce. Separate DGND and AGND as noted, connecting only at R_STAR.
+- **Net Classes and Design Rules**: Define net classes in "Board Setup > Design Rules > Net Classes" for DDR3 (e.g., 0.1mm width, 0.15mm clearance), audio (wider for low impedance), and power (thicker traces). Enforce rules for length matching and differential pairs.
 
-## Firmware Development Process
+### High-Speed Routing (DDR3-Specific)
+DDR3 signals operate at up to 1333 MT/s, requiring controlled impedance and minimal skew to prevent reflections and timing errors (per TMS320C6657 Section 6.11 and JEDEC JESD79-3C).
+- **Controlled Impedance**: Target 50Ω single-ended/100Ω differential. Use KiCad's Impedance Calculator to set trace widths (e.g., 0.127mm for 50Ω on FR4 with 0.2mm dielectric). Route differential pairs (CLKP/N, DQS0P/N, DQS1P/N) with equal lengths and consistent spacing.
+- **Length Matching**: Match DQ/DQS within groups (<50ps skew, ~7.5mm length tolerance at 1333 MT/s) and address/control to CLK (<100ps). Use KiCad's "Tune Track Length" and "Tune Skew" tools in Interactive Router mode for meandering traces.
+- **Routing Layers**: Route DDR3 on inner layers sandwiched between ground planes to shield from crosstalk. Avoid outer layers for high-speed signals to minimize EMI. Use "Push and Shove" router in KiCad for efficient placement.
+- **Termination and Calibration**: Series terminations (34Ω placeholders in R_TERM) placed near U1 outputs; adjust via simulations. PTV15 (45.3Ω to ground) tunes driver impedance—route as a short, low-inductance trace.
+- **Via Transitions**: Limit to 1-2 per signal; use back-drilling if stubs >1/20 wavelength (~3mm at 1GHz). Ground vias around signal vias for return paths.
+- **Crosstalk Mitigation**: Maintain >3x trace width spacing between parallel traces. Orthogonal routing on adjacent layers reduces coupling.
 
-See detailed steps in the main README; uses TI tools like CCS and Processor SDK.
+### Mixed-Signal Routing (Audio and Digital)
+This design combines high-speed digital (DDR3, McBSP0) with sensitive analog audio, requiring isolation to prevent digital noise from degrading audio quality (per TAC5212 datasheet and mixed-signal best practices).
+- **Separation**: Physically separate analog (audio traces, codec) from digital (DDR3, I2C) sections by >10mm. Use ground pours or moats to isolate; in KiCad, draw zones with "Keep Out" rules for digital signals near analog areas.
+- **Analog Routing**: Use differential pairs for audio inputs/outputs (IN1P/M, OUT1P/M) with matched lengths. Keep traces short (<50mm) and wide (0.5-1mm) for low impedance. Avoid vias in analog paths to minimize inductance.
+- **Digital-Analog Interface**: Route McBSP0 (BCLK, FSYNC) with controlled lengths to match codec timing (≥40ns period). I2C lines (SCL/SDA) with 22Ω series resistors to damp ringing; keep <100mm to avoid capacitance issues.
+- **EMI/EMC**: Ferrite beads (FB1-4) filter noise; place near entry points (e.g., FB3/4 near J2). Ground audio jacks (J2/J3) to AGND. Use KiCad's "RF Tools" for EMI analysis if available.
+- **Power Routing**: Star-route power to analog sections from filtered rails (VCC_AUDIO via FB2). Decouple each pin (e.g., 0.01μF near AVDD) to suppress ripple.
 
-## Getting Started
+**WIP Note**: These practices will be refined based on prototype testing and SI simulations. Community input on KiCad-specific workflows (e.g., plugins for impedance control) is welcome.
 
-1. **Generate Files**: Run schematic/PCB scripts to create KiCad files.
-2. **KiCad Workflow**: Annotate, assign footprints, import netlist to PCB, run DRC/ERC.
-3. **Fabrication**: Export Gerbers/BOM; use services like JLCPCB (specify impedance for DDR).
-4. **Assembly**: Reflow for BGA; test power rails first.
-5. **Firmware**: Load via JTAG using CCS.
+## Usage Instructions
 
-Helpful tip: For DDR3, use TI EMIF tools in CCS for calibration.
+1. **Clone the Repository**:
+   ```bash:disable-run
+   git clone <repository_url>
+   cd <repository_directory>
+   ```
 
-## Contributing
+2. **Install Dependencies**:
+   ```bash
+   pip install skidl kinet2pcb
+   ```
 
-Fork, modify, and PR. Comply with CERN-OHL-S v2; document changes.
+3. **Generate the Schematic**:
+   - Run the SKiDL script to generate the KiCad schematic:
+     ```bash
+     python schematic.py
+     ```
+   - This produces `production_dsp_schematic.kicad_sch` in the working directory.
+
+4. **Open in KiCad**:
+   - Launch KiCad and open `production_dsp_schematic.kicad_sch`.
+   - Verify the schematic using KiCad’s Electrical Rules Check (ERC).
+
+5. **PCB Layout**:
+   - Import the schematic into KiCad’s PCB Editor.
+   - Follow the layout guidelines above for DDR3, power, and audio routing.
+   - Generate Gerber files for manufacturing.
+
+**WIP Note**: Firmware and test scripts are under development; initial bootloader for TMS320C6657 McBSP/DDR initialization planned for next iteration.
+
+## Design Notes
+
+- **DSP Pinout**: Complete power pinout (CVDD, CVDD1, DVDD15, DVDD18, VDDR1-4, VDDT1-2, AVDDA1-2, VSS) verified against TMS320C6657 datasheet (Table 4-1). McBSP0 and DDR pins verified per Table 4-2. PTV15 (F15) added for impedance tuning.
+- **DDR3 Connections**: All DQ, DQS, address, and control signals matched to MT41K512M16 datasheet (FBGA-96 x16 configuration). ZQ calibration uses a single 240Ω resistor to ground. Series terminations (34Ω) added as placeholders for SI optimization.
+- **Codec Configuration**: I2C interface (SCL, SDA) with 4.7kΩ pull-ups to VCC_3V3 and 22Ω series resistors for ringing reduction. DSP I2C0 pins (AA22, AB22) used; verify pinmux settings.
+- **ESD Protection**: TVS diodes on audio inputs (J2) and outputs (J3) to protect against electrostatic discharge.
+- **Decoupling**: 50x 0.1μF, 10x 0.01μF, and 3x 10μF capacitors distributed across power rails for stability.
+- **EMI Suppression**: Ferrite beads on power (FB1, FB2) and audio inputs (FB3, FB4) for RF noise filtering.
+- **No USB**: Removed USB-C due to lack of native support in TMS320C6657. Add an external USB controller if needed.
+
+**WIP Note**: SI simulations for DDR3 (reflections, crosstalk) and EMI testing (IEC 61000-4-3) are pending; results will inform final adjustments.
+
+## Production Considerations
+
+- **Verification**: Validate all connections against TMS320C6657, MT41K512M16, and TAC5212 datasheets. Perform ERC/DRC in KiCad.
+- **Power Management**: TPS659037 PMIC configured for core-before-I/O sequencing; monitor rails during prototype testing.
+- **Thermal Management**: The TMS320C6657 may require a heatsink or thermal vias due to high power dissipation in BGA-625 package.
+- **Firmware**: Develop DSP firmware to initialize the McBSP0 interface, configure the TAC5212 via I2C, and manage DDR3 memory operations. Code Composer Studio recommended.
+- **Testing**: Perform signal integrity tests for DDR3 and audio paths, and verify ESD protection under IEC 61000-4-2 standards. Prototype assembly and bench testing planned for Q1 2026.
+- **Manufacturing**: Use IPC-7351 for land patterns; ensure RoHS compliance and DFM review.
+
+**WIP Note**: Full BOM, Gerber files, and assembly drawings are in development. Prototype run scheduled for early 2026.
 
 ## License
 
-Copyright © 2025 DeMoD LLC and Asher LeRoy.
+This project is licensed under the CERN Open Hardware Licence Strongly Reciprocal (CERN-OHL-S) v2. See the `LICENSE` file for details. Users must comply with the license terms, including sharing derivative works under the same license.
 
-Licensed under CERN Open Hardware Licence Strongly Reciprocal (CERN-OHL-S) v2. See LICENSE for details.
+## Contributing
+
+Contributions are welcome! Please submit issues or pull requests via the repository. Ensure changes are tested (e.g., ERC, SI sims) and comply with the CERN-OHL-S v2 license. Focus areas for WIP:
+- PCB layout and routing.
+- Firmware examples for McBSP/DDR/I2C.
+- SI/EMI validation scripts.
+
+## Contact
+
+For questions or support, contact alh477@demod.ltd.
+
+---
+
+*Generated on October 12, 2025*  
+*Version: 0.2.0 (WIP)*
+```
