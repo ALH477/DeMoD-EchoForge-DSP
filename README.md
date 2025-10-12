@@ -19,6 +19,51 @@ This project provides a production-ready schematic for a high-performance DSP au
 - **Debugging**: JTAG interface for DSP programming and debugging.
 - **Signal Integrity Enhancements**: DDR3 impedance tuning (PTV15), series terminations, ferrite beads for EMI suppression, and localized decoupling.
 
+```mermaid
+graph TD
+    subgraph Audio Input/Output
+        J2[3.5mm TRS Input\nJ2] -->|"GUITAR_IN_L, GUITAR_IN_R\n(via FB3, FB4, D2)"| U3_IN[U3: TAC5212\nIN1P, IN2P]
+        U3_OUT[U3: TAC5212\nOUT1P, OUT2P] -->|"AUDIO_OUT_L, AUDIO_OUT_R\n(via R1, R2, D3, D4, C30, C31)"| J3[3.5mm TRS Output\nJ3]
+    end
+
+    subgraph Codec
+        U3_IN -->|"Internal ADC"| U3_McBSP[U3: TAC5212\nBCLK, FSYNC, DOUT, DIN]
+        U3_McBSP -->|"Internal DAC"| U3_OUT
+    end
+
+    subgraph DSP
+        U1_McBSP[U1: TMS320C6657\nMcBSP0_DX, McBSP0_DR\nMcBSP0_CLKX, McBSP0_FSX] -->|"McBSP_DX, McBSP_DR\nMcBSP_CLKX, McBSP_FSX"| U3_McBSP
+        U1_DDR[U1: TMS320C6657\nDDR_D0-D15, DQS0P/N, DQS1P/N\nA0-A15, BA0-BA2, CAS, RAS, WE\nCLKP/N, CE0, ODT0, CKE0, RESET] -->|"DDR_D0-D15 (via R_TERM)\nDQS0P/N, DQS1P/N\nA0-A15, BA0-BA2, CAS, RAS, WE\nCLKP/N, CE0, ODT0, CKE0, RESET"| U2[U2: MT41K512M16\nDQ0-15, LDQS/LDQS#, UDQS/UDQS#\nA0-15, BA0-2, CAS#, RAS#, WE#\nCK/CK#, CS#, ODT, CKE, RESET#]
+        U1_I2C[U1: TMS320C6657\nI2C0_SCL, I2C0_SDA] -->|"I2C_SCL, I2C_SDA\n(via R_I2C_S1, R_I2C_S2)"| U3_I2C[U3: TAC5212\nSCL, SDA]
+        U1_JTAG[U1: TMS320C6657\nJTAG_TMS, TDI, TDO, TCK, TRST, EMU0] -->|"JTAG_TMS, TDI, TDO, TCK, TRST, EMU0"| JTAG[JTAG Header]
+    end
+
+    subgraph Memory
+        U2 -->|"ZQ Calibration\n(via R_ZQ_RAM)"| DGND[DGND]
+        U2 -->|"VREF_DDR\n(via R_VREF1, R_VREF2)"| VCC_1V5[VCC_1V5]
+    end
+
+    subgraph DSP Calibration
+        U1_DDR -->|"PTV15\n(via R_PTV 45.3Ω)"| DGND
+        U1_DDR -->|"VREFSSTL"| VREF_DDR
+    end
+
+    subgraph Power Management
+        U7[TPS659037 PMIC] -->|"LDO1: VCC_1V0\nLDO2: VCC_1V5\nLDO3: VCC_1V8\nLDO4: VCC_3V3"| U1
+        U7 -->|"VCC_1V5"| U2
+        U7 -->|"VCC_3V3\n(via FB1, FB2)"| U3
+        U7 -->|"SEQ_EN1-4"| U4_U6[U4, U5, U6: TPS7A54]
+    end
+
+    style U1 fill:#f9f,stroke:#333,stroke-width:2px
+    style U2 fill:#bbf,stroke:#333,stroke-width:2px
+    style U3 fill:#bfb,stroke:#333,stroke-width:2px
+    style J2 fill:#ffb,stroke:#333,stroke-width:2px
+    style J3 fill:#ffb,stroke:#333,stroke-width:2px
+    style JTAG fill:#ffb,stroke:#333,stroke-width:2px
+    style U7 fill:#fbf,stroke:#333,stroke-width:2px
+```
+
 **Important Note: Work in Progress**  
 This project is actively under development and considered a work in progress (WIP). While the schematic addresses core functionality and key signal integrity requirements, ongoing iterations include full PCB layout, firmware development, SI simulations (e.g., HyperLynx for DDR3 eye diagrams), and hardware validation. Contributions, feedback, and testing are encouraged to refine the design. Current version incorporates critical fixes (e.g., power sequencing, PTV15 calibration) but may require adjustments based on prototype results. Refer to the [CHANGELOG.md](CHANGELOG.md) (to be added) for version history.
 
