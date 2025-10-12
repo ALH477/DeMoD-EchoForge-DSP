@@ -185,4 +185,3 @@ For questions or support, contact alh477@demod.ltd.
 
 *Generated on October 12, 2025*  
 *Version: 0.2.0 (WIP)*
-```
