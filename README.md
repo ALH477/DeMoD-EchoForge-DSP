@@ -19,6 +19,8 @@ This project provides a production-ready schematic for a high-performance DSP au
 - **Debugging**: JTAG interface for DSP programming and debugging.
 - **Signal Integrity Enhancements**: DDR3 impedance tuning (PTV15), series terminations, ferrite beads for EMI suppression, and localized decoupling.
 
+![DSP](https://www.ti.com/content/dam/ticom/images/products/package/c/czh0625a.png:large)
+
 ```mermaid
 graph TD
     subgraph Audio Input/Output
