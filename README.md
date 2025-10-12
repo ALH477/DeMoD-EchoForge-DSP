@@ -20,7 +20,7 @@ This project provides a production-ready schematic for a high-performance DSP au
 - **Signal Integrity Enhancements**: DDR3 impedance tuning (PTV15), series terminations, ferrite beads for EMI suppression, and localized decoupling.
 
 ![DSP](https://www.ti.com/content/dam/ticom/images/products/package/c/czh0625a.png:large)
-
+![DSPTI](https://www.ti.com/ds_dgm/images/fbd_sprs814d.gif)
 ```mermaid
 graph TD
     subgraph Audio Input/Output
