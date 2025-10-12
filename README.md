@@ -18,9 +18,25 @@ This project provides a production-ready schematic for a high-performance DSP au
 - **ESD Protection**: TVS diodes on audio I/O for robustness.
 - **Debugging**: JTAG interface for DSP programming and debugging.
 - **Signal Integrity Enhancements**: DDR3 impedance tuning (PTV15), series terminations, ferrite beads for EMI suppression, and localized decoupling.
-
+## DSP
 ![DSP](https://www.ti.com/content/dam/ticom/images/products/package/c/czh0625a.png:large)
 ![DSPTI](https://www.ti.com/ds_dgm/images/fbd_sprs814d.gif)
+
+## Codec
+![codec](https://www.ti.com/content/dam/ticom/images/products/package/r/rge0024r.png:large)
+![codec](https://www.ti.com/ds_dgm/images/fbd_slasf23a_2.svg)
+
+## DDR3 Memory
+![Memory](https://mm.digikey.com/Volume0/opasdata/d220001/derivates/1/030/852/147/557%7E96FBGA-1%2C2-8x14%7EVRP%7E96_sml.jpg)
+
+## Power Management
+![PMIC](https://www.ti.com/content/dam/ticom/images/products/package/z/zws0169a.png:large)
+![PMIC](https://www.ti.com/ds_dgm/images/fbd_slis165g.gif)
+
+## Regulators
+![TPS7A54-Q1](https://www.ti.com/content/dam/ticom/images/products/package/r/rgr0020a.png:large)
+
+## Mermaid Diagram
 ```mermaid
 graph TD
     subgraph Audio Input/Output
