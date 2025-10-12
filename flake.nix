@@ -18,10 +18,9 @@
             src = pself.fetchPypi {
               inherit pname;
               inherit version;
-              hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
+              hash = "sha256-nQxXvV+EALn+VY6ja3UYBn3b5yehBrFJjH+hBLd8HKE=";
             };
             nativeBuildInputs = with pself; [ setuptools ];
-            # No known dependencies
           };
 
           inspice = pself.buildPythonPackage rec {
@@ -31,10 +30,9 @@
             src = pself.fetchPypi {
               inherit pname;
               inherit version;
-              hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
+              hash = "sha256-gLcUQnbWSRdWGNMHbC3MuCus+p1AYGjU25IY5murMzM=";
             };
             nativeBuildInputs = with pself; [ setuptools ];
-            # May require ngspice or xyce at runtime
           };
 
           kinet2pcb = pself.buildPythonPackage rec {
@@ -44,7 +42,7 @@
             src = pself.fetchPypi {
               inherit pname;
               inherit version;
-              hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
+              hash = "sha256-fqJxOiXLJTXPJxT92tR7apWSjO+RaEBW9LJ3n9EOwZM=";
             };
             nativeBuildInputs = with pself; [ setuptools ];
             propagatedBuildInputs = with pself; [ pyparsing ];
@@ -57,7 +55,7 @@
             src = pself.fetchPypi {
               inherit pname;
               inherit version;
-              hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
+              hash = "sha256-8SdUSqH4Z1yiYsg4Ros/oCAH3hr2oueZZFDnJ4wo0oU=";
             };
             nativeBuildInputs = with pself; [ setuptools ];
             propagatedBuildInputs = with pself; [ kinet2pcb simp-sexp inspice ply graphviz deprecation ];
@@ -70,7 +68,6 @@
     myPython = pkgs.python3.withPackages (ps: with ps; [
       skidl
       kinet2pcb
-      kicad-python  # Provides pcbnew etc.
       pyparsing
       ply
       graphviz
@@ -83,13 +80,12 @@
       name = "dsp-schematic";
       src = self;
 
-      buildInputs = [ myPython pkgs.kicad-small pkgs.ngspice ];  # ngspice for inspice if needed
+      buildInputs = [ myPython pkgs.kicad-small pkgs.ngspice ];
 
       buildPhase = ''
-        # Assume the script is named script.py in the source root
-        cp $src/pasted-text.txt script.py  # Rename if necessary
-        sed -i "s|'/usr/share/kicad/library'|'${pkgs.kicad-small}/share/kicad/library'|g" script.py
-        python script.py
+        cp $src/pasted-text.txt schematic.py
+        sed -i "s|'/usr/share/kicad/library'|'${pkgs.kicad-small}/share/kicad/library'|g" schematic.py
+        python schematic.py
       '';
 
       installPhase = ''
@@ -103,7 +99,7 @@
       shellHook = ''
         export PYTHONPATH="$PYTHONPATH:${pkgs.kicad-small}/share/kicad/scripting"
         export KICAD_LIBRARY_PATH="${pkgs.kicad-small}/share/kicad/library"
-        echo "Run python script.py to generate the schematic"
+        echo "Run python schematic.py to generate the schematic"
       '';
     };
   };
