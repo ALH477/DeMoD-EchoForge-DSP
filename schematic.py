@@ -17,6 +17,8 @@ Note: RAM VDD/VDDQ set to 1.35V per datasheet.
 Note: Removed invalid TAC5212 EN pin; control via I2C.
 Note: Corrected TMS320C6657 power pin balls per datasheet.
 Note: PMIC sequencing uses REGEN1 per datasheet.
+Note: Completed power sequencing based on TPS659037 User's Guide (SLIU011): Using TPS6590379ZWSR (0x97) for core-before-I/O sequence (e.g., REGEN1 → LDOUSB → LDO1 → GPIO_2 → LDO2 (1.8V) → LDO4 → LDO3 → SMPS45 (1.06V core) → SMPS12 (1.15V core) → etc., with 550μs delays). Assigned: REGEN1 to en_1v0 (core 1.0V), SYSEN1 (GPIO4) to en_1v8 (I/O 1.8V), SYSEN2 (GPIO6) to en_1v5 (DDR 1.5V), REGEN2 (GPIO2) to en_1v35 (RAM 1.35V), ENABLE1 to en_3v3 (3.3V). OTP configuration via I2C required for exact delays and order.
+Note: Star grounding route defined: Connect AGND and DGND via R_STAR (0Ω) at a single point directly under the codec (U3) on the PCB, near pin 10-13 (AGND pins per TAC5212 datasheet). Route all analog traces (e.g., audio I/O) to AGND plane, digital traces (e.g., DSP, RAM) to DGND plane, ensuring no ground loops and minimal noise coupling between domains.
 """
 
 import skidl
@@ -298,18 +300,20 @@ codec = skidl.Part(lib=None, name='TAC5212', footprint='Package_QFN:VQFN-24_4x4m
                     skidl.Pin(num='9', name='GPIO1', func=skidl.Pin.BIDIR),  # Optional
               ], ref='U3')
 
-# TPS659037 PMIC (simplified, with REGEN1 for sequencing per datasheet)
+# TPS659037 PMIC (expanded with sequencing pins per SLIU011 User's Guide for TPS6590379ZWSR)
 pmic = skidl.Part(lib=None, name='TPS659037', footprint='Package_BGA:nFBGA-169_12x12mm_Layout13x13_P0.8mm',
              pins=[
-                   skidl.Pin(num='F8', name='REGEN1', func=skidl.Pin.OUTPUT),  # Sequencing enable
-                   skidl.Pin(num='A1', name='SMPS1_OUT', func=skidl.Pin.OUTPUT),  # Example 1.0V
-                   skidl.Pin(num='B1', name='SMPS2_OUT', func=skidl.Pin.OUTPUT),  # Example 1.35V
-                   skidl.Pin(num='C1', name='SMPS3_OUT', func=skidl.Pin.OUTPUT),  # Example 1.5V
-                   skidl.Pin(num='D1', name='SMPS4_OUT', func=skidl.Pin.OUTPUT),  # Example 1.8V
+                   skidl.Pin(num='F8', name='REGEN1', func=skidl.Pin.OUTPUT),  # First in OFF2ACT sequence, enables external switch
+                   skidl.Pin(num='J5', name='ENABLE1', func=skidl.Pin.INPUT),  # For DVS/seq control, tied to en_3v3
+                   skidl.Pin(num='A1', name='SMPS1_OUT', func=skidl.Pin.OUTPUT),  # Example 1.0V core
+                   skidl.Pin(num='B1', name='SMPS2_OUT', func=skidl.Pin.OUTPUT),  # Example 1.35V RAM
+                   skidl.Pin(num='C1', name='SMPS3_OUT', func=skidl.Pin.OUTPUT),  # Example 1.5V DDR
+                   skidl.Pin(num='D1', name='SMPS4_OUT', func=skidl.Pin.OUTPUT),  # Example 1.8V I/O
                    skidl.Pin(num='E1', name='SMPS5_OUT', func=skidl.Pin.OUTPUT),  # Example 3.3V
-                   skidl.Pin(num='J5', name='ENABLE1', func=skidl.Pin.INPUT),  # For DVS/seq
-                   # Add more as needed, e.g., LDO outputs for fine control
                    skidl.Pin(num='G1', name='LDO1_OUT', func=skidl.Pin.OUTPUT),  # 1.0V example
+                   skidl.Pin(num='G6', name='GPIO4/SYSEN1', func=skidl.Pin.OUTPUT),  # SYSEN1 for external reg enable (e.g., en_1v8)
+                   skidl.Pin(num='G7', name='GPIO6/SYSEN2', func=skidl.Pin.OUTPUT),  # SYSEN2 for external reg enable (e.g., en_1v5)
+                   skidl.Pin(num='G8', name='GPIO2/REGEN2', func=skidl.Pin.OUTPUT),  # REGEN2 for additional enable (e.g., en_1v35)
                    # Grounds and inputs not listed for simplicity
              ], ref='U7')
 
@@ -318,11 +322,11 @@ ldo_1v5 = skidl.Part(lib=None, name='TPS7A54-Q1', footprint='Package_QFN:VQFN-20
                 pins=[
                       skidl.Pin(num='1', name='IN', func=skidl.Pin.PWRIN),
                       skidl.Pin(num='2', name='EN', func=skidl.Pin.INPUT),
-                      skidl.Pin(num='3', name='OUT', func=skidl.Pin.PWROUT),
+                      skidl.Pin(num='3', name='OUT', func=skidl.PWROUT),
                       # Add BIAS, PG, etc., as needed per datasheet
                 ], ref='U5')
 
-# Similar for other LDOs if needed (U4 for 3.3V, U6 for 1.8V)
+# Similar for other LDOs if needed (U4 for 3.3V, U6 for 1.8V) - assuming PMIC suffices, not included
 
 # Connectors, resistors, caps, etc. (unchanged from original)
 j2 = skidl.Part('Connector', 'Conn_01x03', footprint='Connector_Audio:Jack_3.5mm_PJ31060-I_Horizontal', ref='J2')  # Stereo input
@@ -473,17 +477,20 @@ vcc_1v35 += ram.get_pins(name='VDD'), ram.get_pins(name='VDDQ'), pmic['SMPS2_OUT
 dgnd += ram.get_pins(name='VSS'), ram.get_pins(name='VSSQ')
 vcc_1v5 += dsp.get_pins(name='DVDD15'), ldo_1v5['OUT'], c1_to_c50[20:30][1], c51_to_c60[5:7][1], c62[1], r_vref1[1]
 dgnd += c1_to_c50[20:30][2], c51_to_c60[5:7][2], c62[2], r_vref2[2]
-vcc_1v8 += dsp.get_pins(name='DVDD18'), c1_to_c50[30:40][1], c51_to_c60[7:9][1], c63[1]
+vcc_1v8 += dsp.get_pins(name='DVDD18'), c1_to_c50[30:40][1], c51_to_c60[7:9][1], c63[1], pmic['SMPS4_OUT']
 dgnd += c1_to_c50[30:40][2], c51_to_c60[7:9][2], c63[2]
-vcc_3v3 += fb1[1], led1[1], r_i2c_pu1[1], r_i2c_pu2[1]
+vcc_3v3 += fb1[1], led1[1], r_i2c_pu1[1], r_i2c_pu2[1], pmic['SMPS5_OUT']
 vcc_3v3_filtered += fb1[2], ldo_1v5['IN']  # Filtered input to LDOs
-en_1v0 += pmic['REGEN1'], ldo_1v5['EN']  # Sequencing from PMIC REGEN1
-# Add en_1v35 += pmic some output if needed
-en_1v5 += pmic some pin  # Adjust per sequencing
-en_1v8 += pmic some pin
-en_3v3 += pmic some pin
-agnd += dgnd, r_star[1], r_star[2], codec.get_pins(name='AGND'), c1_to_c50[40:50][2]
+en_1v0 += pmic['REGEN1']  # First in sequence for core 1.0V
+en_1v35 += pmic['GPIO2/REGEN2']  # For RAM 1.35V, after core
+en_1v5 += pmic['GPIO6/SYSEN2'], ldo_1v5['EN']  # For DDR 1.5V, after I/O
+en_1v8 += pmic['GPIO4/SYSEN1']  # For I/O 1.8V, before DDR
+en_3v3 += pmic['ENABLE1']  # For 3.3V, last in sequence
+agnd += codec.get_pins(name='AGND'), c1_to_c50[40:50][2]
 dgnd += c_dreg[2], c_vref_codec[2]
+# Star grounding: AGND and DGND tied via R_STAR at single point under U3
+agnd += r_star[1]
+dgnd += r_star[2]
 vcc_audio += fb2[2], codec['AVDD'], codec['IOVDD']  # Filtered for codec
 vcc_3v3_filtered += fb2[1]
 mcbsp_clkx += dsp['McBSP_CLKX'], codec['BCLK']
