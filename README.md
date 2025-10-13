@@ -99,20 +99,163 @@ This project is actively under development and considered a work in progress (WI
 - `production_dsp_schematic.kicad_sch` (generated): KiCad schematic file with enhanced features (e.g., PMIC integration, ferrite beads, dual-rank DDR support).
 - `README.md`: This file.
 - `CHANGELOG.md` (planned): Detailed change log for WIP iterations.
+- `Dockerfile`: Container definition for isolated development environment.
+- `requirements.txt`: Python dependencies for the project.
+- `run.sh`: Shell script for managing container execution.
+- `init_env.py`: Environment initialization script.
+- `flake.nix`: Nix configuration for dependency management and build environment.
+- `output/`: Directory for generated schematics.
+- `libraries/`: Directory for custom KiCad libraries.
+- `logs/`: Directory for processing logs.
+
+## Infrastructure Analysis
+
+### 1. Docker Implementation
+
+The Docker setup is sophisticated and well-structured, based on Ubuntu 24.04 LTS with a Python 3.11 environment and KiCad integration.
+
+**Dockerfile**:
+```dockerfile
+FROM ubuntu:24.04
+
+# Environment Setup
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV KISYSMOD=/usr/share/kicad/modules
+ENV KICAD_SYMBOL_DIR=/usr/share/kicad/library
+ENV PYTHONPATH="${PYTHONPATH}:/opt/venv/lib/python3.11/site-packages"
+```
+
+**Key Components**:
+- Essential build tools and graphics libraries.
+- Configured for non-interactive Debian frontend, UTC timezone, and unbuffered Python output.
+- KiCad module and symbol directories set for schematic generation.
+
+**Directory Structure**:
+```
+DeMoD-EchoForge-DSP/
+├── Dockerfile           # Container definition
+├── requirements.txt     # Python dependencies
+├── run.sh              # Execution script
+├── schematic.py        # Main processing script
+├── init_env.py         # Environment initialization
+├── output/             # Generated schematics
+├── libraries/          # Custom KiCad libraries
+└── logs/               # Processing logs
+```
+
+### 2. Shell Script Implementation
+
+The `run.sh` script manages container execution with timestamp-based naming and volume mounting for persistence.
+
+**run.sh**:
+```bash
+#!/bin/bash
+
+# Configuration
+CONTAINER_NAME="dsp-schematic-env"
+IMAGE_NAME="dsp-schematic:latest"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+# Volume mounting
+docker run \
+    --name "${CONTAINER_NAME}_${TIMESTAMP}" \
+    -v "$(pwd)/output:/app/output" \
+    -v "$(pwd)/libraries:/app/libraries" \
+    -v "$(pwd)/logs:/app/logs" \
+    -e "USER_LOGIN=ALH477" \
+    -e "TZ=UTC" \
+    $IMAGE_NAME
+```
+
+**Features**:
+- Timestamp-based container naming for versioning.
+- Volume mounting for persistent storage of output, libraries, and logs.
+- Environment variable passing for user identification and timezone.
+- Logging system integration for tracking execution.
+
+### 3. Nix Implementation
+
+The `flake.nix` configuration manages dependencies and build environment using the nixpkgs unstable channel.
+
+**flake.nix**:
+```nix
+{
+  description = "Flake to process the DSP audio interface schematic script";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  };
+
+  outputs = { self, nixpkgs }: let
+    system = "x86_64-linux";
+    overlays = [
+      (final: prev: rec {
+        python3 = prev.python3.override {
+          packageOverrides = pself: psuper: {
+            # Custom package definitions
+          };
+        };
+      })
+    ];
+```
+
+**Key Features**:
+- Custom Python package overrides for skidl, kinet2pcb, pyparsing, ply, graphviz, simp-sexp, and inspice.
+- Ensures reproducible builds across different systems.
+
+### 4. Integration Points
+
+The system integrates Docker, Shell scripts, and Nix for schematic generation:
+- **Docker** provides isolation and reproducibility.
+- **Shell scripts** handle execution flow and logging.
+- **Nix** manages dependencies and build environment.
+- **Volume mounting** ensures persistent storage for `/app/output`, `/app/libraries`, and `/app/logs`.
+
+### 5. Error Handling and Logging
+
+**Sophisticated logging system**:
+```
+[2025-10-12 12:46:22 UTC] Starting schematic generation
+[2025-10-12 12:46:23 UTC] Environment initialized
+[2025-10-12 12:46:25 UTC] Schematic generated successfully
+```
+
+### 6. Development Workflow
+
+```bash
+# Development workflow
+git clone https://github.com/ALH477/DeMoD-EchoForge-DSP.git
+cd DeMoD-EchoForge-DSP
+chmod +x run.sh
+./run.sh
+```
+
+### 7. Hardware Integration
+
+The software infrastructure supports the hardware design:
+- TMS320C6657 DSP integration with dual C66x cores at 1.25 GHz.
+- MT41K512M16 DDR3L memory interface with 32 Meg x 16 x 8 banks x 2 ranks.
+- TAC5212 stereo audio codec with 119dB ADC and 120dB DAC dynamic range.
+- I2C configuration interface.
+- Power management and signal integrity considerations via TPS659037 and TPS7A54.
 
 ## Prerequisites
 
 To generate and use the schematic, ensure the following tools are installed:
-
 - **Python**: Version 3.8 or higher.
-- **SKiDL and kinet2pcb**: Install via `pip install skidl kinet2pcb`.
+- **SKiDL and kinet2pcb**: Install via `pip install skidl kinet2pcb` or managed through Nix.
 - **KiCad**: Version 7 or higher for opening and editing the generated schematic.
+- **Docker**: For containerized execution.
+- **Nix**: For dependency management (optional but recommended for reproducibility).
 
 ## Layout Guidelines
 
 ### DDR3 Routing (High-Speed Digital)
 Refer to MT41K512M16 and TMS320C6657 datasheets for specs. Key guidelines:
-- **Trace Length Matching**: <50ps skew across DQ, DQS, address/control groups. Use length tuning in KiCad.
+- **Trace Length Matching**: <50ps skew across DQ, DQS, address/control groups. Use length tuning in KiCad. Refer to Table 1 in MT41K512M16 datasheet for timing parameters (e.g., tRCD=13.91ns at 1866 MT/s).
 - **Impedance Control**: 50Ω single-ended, 100Ω differential for CLK/DQS. Stackup: 4-6 layers with ground planes.
 - **Termination and Calibration**: Series terminations (34Ω placeholders in R_TERM) placed near U1 outputs; adjust via simulations. PTV15 (45.3Ω to ground) tunes driver impedance—route as a short, low-inductance trace. Dual ZQ (240Ω each) for TwinDie ranks.
 - **Via Transitions**: Limit to 1-2 per signal; use back-drilling if stubs >1/20 wavelength (~3mm at 1GHz). Ground vias around signal vias for return paths.
@@ -124,7 +267,7 @@ Refer to TAC5212 datasheet for mixed-signal best practices. This design combines
 - **Analog Routing**: Use differential pairs for audio inputs/outputs (IN1P/M, OUT1P/M) with matched lengths. Keep traces short (<50mm) and wide (0.5-1mm) for low impedance. Avoid vias in analog paths to minimize inductance.
 - **Digital-Analog Interface**: Route McBSP0 (BCLK, FSYNC) with controlled lengths to match codec timing (≥40ns period). I2C lines (SCL/SDA) with 22Ω series resistors to damp ringing; keep <100mm to avoid capacitance issues.
 - **EMI/EMC**: Ferrite beads (FB1-4) filter noise; place near entry points (e.g., FB3/4 near J2). Ground audio jacks (J2/J3) to AGND. Use KiCad's "RF Tools" for EMI analysis if available.
-- **Power Routing**: Star-route power to analog sections from filtered rails (VCC_AUDIO via FB2). Decouple each pin (e.g., 0.01μF near AVDD) to suppress ripple. TPS7A54 provides low-noise 1.8V/3.3V for codec.
+- **Power Routing**: Star-route power to analog sections from filtered rails (VCC_AUDIO via FB2). Decouple each pin (e.g., 0.01μF near AVDD) to suppress ripple. TPS7A54 provides low-noise 1.8V/3.3V for codec (4.4µVRMS noise per datasheet).
 
 **WIP Note**: These practices will be refined based on prototype testing and SI simulations. Community input on KiCad-specific workflows (e.g., plugins for impedance control) is welcome.
 
@@ -137,19 +280,34 @@ Refer to TAC5212 datasheet for mixed-signal best practices. This design combines
    ```
 
 2. **Install Dependencies**:
-   ```bash
-   pip install skidl kinet2pcb
-   ```
+   - Using Docker (recommended):
+     ```bash
+     docker build -t dsp-schematic:latest .
+     ```
+   - Using Nix (alternative):
+     ```bash
+     nix-shell
+     pip install -r requirements.txt
+     ```
+   - Manual (without Docker/Nix):
+     ```bash
+     pip install skidl kinet2pcb
+     ```
 
 3. **Generate the Schematic**:
-   - Run the SKiDL script to generate the KiCad schematic:
+   - Using Docker:
+     ```bash
+     chmod +x run.sh
+     ./run.sh
+     ```
+   - Manually:
      ```bash
      python schematic.py
      ```
-   - This produces `production_dsp_schematic.kicad_sch` in the working directory.
+   - This produces `production_dsp_schematic.kicad_sch` in the `output/` directory.
 
 4. **Open in KiCad**:
-   - Launch KiCad and open `production_dsp_schematic.kicad_sch`.
+   - Launch KiCad and open `output/production_dsp_schematic.kicad_sch`.
    - Verify the schematic using KiCad’s Electrical Rules Check (ERC).
 
 5. **PCB Layout**:
@@ -167,7 +325,7 @@ Refer to TAC5212 datasheet for mixed-signal best practices. This design combines
 - **ESD Protection**: TVS diodes on audio inputs (J2) and outputs (J3) to protect against electrostatic discharge.
 - **Decoupling**: 50x 0.1μF, 10x 0.01μF, and 3x 10μF capacitors distributed across power rails for stability.
 - **EMI Suppression**: Ferrite beads on power (FB1, FB2) and audio inputs (FB3, FB4) for RF noise filtering.
-- **Power Sequencing**: TPS659037 PMIC configured per User's Guide (SLIU011) for core-before-I/O sequencing (e.g., REGEN1 → 1.0V core, GPIO4 → 1.8V I/O, GPIO6 → 1.5V DDR, GPIO2 → 1.35V RAM, ENABLE1 → 3.3V) with 550μs delays. OTP configuration via I2C required. TPS7A54 provides low-noise rails (4.4μVRMS noise).
+- **Power Sequencing**: TPS659037 PMIC configured per User's Guide (SLIU011) for core-before-I/O sequencing (e.g., REGEN1 → 1.0V core, GPIO4 → 1.8V I/O, GPIO6 → 1.5V DDR, GPIO2 → 1.35V RAM, ENABLE1 → 3.3V) with 550μs delays. OTP configuration via I2C required. TPS7A54 provides low-noise rails (4.4µVRMS noise).
 - **Grounding**: Star grounding with AGND/DGND connected via 0Ω at single point under codec to minimize noise coupling.
 - **No USB**: Removed USB-C due to lack of native support in TMS320C6657. Add an external USB controller if needed.
 
