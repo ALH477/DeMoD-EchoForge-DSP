@@ -34,7 +34,7 @@ This project provides a production-ready schematic for a high-performance DSP au
 ![PMIC](https://www.ti.com/content/dam/ticom/images/products/package/z/zws0169a.png:large)
 ![PMIC](https://www.ti.com/ds_dgm/images/fbd_slis165g.gif)
 
-## Regulators
+## codec
 ![TPS7A54-Q1](https://www.ti.com/content/dam/ticom/images/products/package/r/rgr0020a.png:large)
 
 ## Mermaid Diagram
